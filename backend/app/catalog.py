@@ -67,9 +67,9 @@ def acceptable_items() -> list[dict]:
 
 # The payment instrument the wallet authorizes for this mandate.
 PAYMENT_INSTRUMENT: dict = {
-    "type": "mastercard.srcDigitalCard",
+    "type": "example.cardNetwork.digitalCard",
     "id": "f199c3dd-7106-478b-9b5f-7af9ca725170",
-    "description": "Mastercard **** 1234",
+    "description": "ExampleCard **** 1234",
 }
 
 

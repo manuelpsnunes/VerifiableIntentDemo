@@ -38,7 +38,7 @@ export const NARRATIVES: Record<string, Narrative> = {
   l1_issued: {
     title: "Issuer signs the L1 card credential",
     summary:
-      "Mastercard (the issuer) signs an SD-JWT L1 credential. It binds the user's device public key via cnf.jwk — only that key can later derive child credentials.",
+      "The card network (the issuer) signs an SD-JWT L1 credential. It binds the user's device public key via cnf.jwk — only that key can later derive child credentials.",
     why: "The user's email is a selectively-disclosable claim: it appears as a hash inside the signed payload (_sd) and the cleartext value lives in the disclosures array. Verifiers see only what gets handed to them.",
     learning_objective:
       "L1 anchors the chain: the issuer signs it, and cnf.jwk pins it to exactly one user device key — no other key can derive children from this L1.",
@@ -119,7 +119,7 @@ export const NARRATIVES: Record<string, Narrative> = {
   authorized: {
     title: "Network authorizes the payment",
     summary:
-      "Mock card network approves the payment (any amount ≤ $1000 in this demo) and mints an AUTH-* id. In production this is where the real Mastercard rails would be hit.",
+      "Mock card network approves the payment (any amount ≤ $1000 in this demo) and mints an AUTH-* id. In production this is where the real card-network rails would be hit.",
     why: "The user's wallet never spoke to the merchant. The merchant never saw the budget. The network never saw the cart. Each verification used only what that party needed — and the cryptographic chain stitched them together.",
     learning_objective:
       "Authorization is the network's contractual commitment — it ran every verification *before* approving, and any chain failure would have stopped settlement.",

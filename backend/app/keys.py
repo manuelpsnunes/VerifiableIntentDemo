@@ -44,7 +44,7 @@ class KeyPair:
 # kid for each role (stable across runs so the UI can show consistent labels).
 # Role names match orchestrator event roles for 1:1 UI mapping.
 _ROLE_KIDS = {
-    "issuer": "mastercard-issuer-key-1",
+    "issuer": "issuer-key-1",
     "wallet": "user-device-key-1",
     "agent": "agent-key-1",
     "merchant": "merchant-key-1",

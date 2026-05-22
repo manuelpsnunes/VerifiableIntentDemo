@@ -25,7 +25,7 @@ from verifiable_intent.verification.constraint_checker import (
 
 from ..keys import get_keys
 
-NETWORK_URL = "https://www.mastercard.com"
+NETWORK_URL = "https://card-network.example"
 
 
 @dataclass

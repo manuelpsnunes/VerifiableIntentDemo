@@ -40,7 +40,7 @@ from . import merchant as merchant_role
 from .merchant import MERCHANT_URL
 
 AGENT_ISS = "https://agent.verifiable-intent.example"
-NETWORK_AUD = "https://www.mastercard.com"
+NETWORK_AUD = "https://card-network.example"
 
 
 @dataclass

@@ -8,7 +8,7 @@ SDK), a Claude-driven agent, and a mock card network.
 
 | Role     | Key kid                   | Responsibility                                              |
 | -------- | ------------------------- | ----------------------------------------------------------- |
-| Issuer   | `mastercard-issuer-key-1` | Signs L1 card credential bound to the user's device key.    |
+| Issuer   | `issuer-key-1`            | Signs L1 card credential bound to the user's device key.    |
 | Wallet   | `user-device-key-1`       | Signs L2 mandate (autonomous), delegates to the agent key. |
 | Agent    | `agent-key-1`             | Picks product via Claude `tool_use`, signs L3a & L3b.       |
 | Merchant | `merchant-key-1`          | Signs checkout JWT, verifies the checkout-side chain.       |
@@ -63,7 +63,7 @@ animate the chain forming live.
 sequenceDiagram
     autonumber
     participant U as User Wallet
-    participant I as Issuer (Mastercard)
+    participant I as Issuer (Card Network)
     participant A as Agent (Claude)
     participant M as Merchant
     participant N as Network (mock)

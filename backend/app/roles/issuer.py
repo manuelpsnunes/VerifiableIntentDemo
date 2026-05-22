@@ -14,7 +14,7 @@ from verifiable_intent.models.issuer_credential import IssuerCredential
 
 from ..keys import get_keys
 
-ISSUER_URL = "https://www.mastercard.com"
+ISSUER_URL = "https://card-network.example"
 WALLET_AUD = "https://wallet.example.com"
 
 
@@ -24,7 +24,7 @@ def issue_l1(
     user_sub: str = "user-alice-001",
     email: str = "alice@example.com",
     pan_last_four: str = "1234",
-    scheme: str = "Mastercard",
+    scheme: str = "ExampleCard",
     lifetime_seconds: int = 60 * 60 * 24 * 365,
 ) -> SdJwt:
     """Issue the L1 SD-JWT binding the user's public key (``cnf.jwk``)."""
