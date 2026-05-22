@@ -3,6 +3,8 @@
 A local demo that runs a real [Verifiable Intent](https://verifiableintent.dev/spec/) **autonomous-mode**
 purchase end-to-end and visualizes every credential, disclosure, and verification step in a live web UI.
 
+![Verifiable Intent demo screenshot — completed run showing the full L1→L2→L3a+L3b credential chain, 12-step timeline, disclosure matrix, and role history](docs/screenshot.png)
+
 Built on top of the official [`verifiable-intent`](https://github.com/agent-intent/verifiable-intent)
 Python SDK. The crypto chain (L1 → L2 → L3a / L3b SD-JWTs) is real; the merchant and payment
 network are role modules we run locally; the agent uses **Anthropic Claude** to pick a product
