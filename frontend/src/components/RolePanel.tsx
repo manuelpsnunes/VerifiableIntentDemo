@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import type { FlowEvent, Role } from "../types";
 import { NARRATIVES } from "../narratives";
+import { ROLE_COLOR, ROLE_GLYPH } from "../roleTheme";
 
 interface Props {
   role: Role;
@@ -11,24 +12,6 @@ interface Props {
   selectedStep: number | null;
   onSelect: (step: number) => void;
 }
-
-const ROLE_COLOR: Record<Role, string> = {
-  system: "#7b87a8",
-  issuer: "#f59e0b",
-  wallet: "#34d399",
-  agent: "#7aa2ff",
-  merchant: "#c084fc",
-  network: "#f472b6",
-};
-
-const ROLE_GLYPH: Record<Role, string> = {
-  system: "·",
-  issuer: "I",
-  wallet: "W",
-  agent: "A",
-  merchant: "M",
-  network: "N",
-};
 
 export function RolePanel({
   role,

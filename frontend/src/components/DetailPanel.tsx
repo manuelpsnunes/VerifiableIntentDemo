@@ -57,8 +57,15 @@ export function DetailPanel({ event }: Props) {
           <p className="text-[13px] text-[#7b87a8] leading-relaxed italic">
             {narrative.why}
           </p>
-          {narrative.look_at && narrative.look_at.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-[#1f2a4a]">
+          {narrative.plain_payments && (
+            <div className="mt-2 pt-2 border-t border-[#1f2a4a] text-[12px] text-[#d4dcf0] leading-relaxed">
+              <span className="text-[#7b87a8] uppercase tracking-wider text-[9px] font-semibold mr-2">
+                In payments terms
+              </span>
+              {narrative.plain_payments}
+            </div>
+          )}
+          {narrative.look_at && narrative.look_at.length > 0 && (            <div className="mt-2 pt-2 border-t border-[#1f2a4a]">
               <div className="text-xs uppercase tracking-wider text-[#7b87a8] mb-1">
                 Worth opening below
               </div>

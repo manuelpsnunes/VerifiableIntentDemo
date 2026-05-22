@@ -6,6 +6,7 @@ import { SplitL2Comparison } from "./SplitL2Comparison";
 import { BindingMath, useBindingLines } from "./BindingMath";
 import { FailureCompareCard } from "./FailureCompareCard";
 import { ConstraintChecks } from "./ConstraintChecks";
+import { ROLE_COLOR } from "../roleTheme";
 
 interface Props {
   event: FlowEvent | null;
@@ -75,15 +76,6 @@ function useBindingContext(allEvents: FlowEvent[]) {
   }, [allEvents]);
 }
 
-const ROLE_COLOR: Record<string, string> = {
-  system: "#7b87a8",
-  issuer: "#f59e0b",
-  wallet: "#34d399",
-  agent: "#7aa2ff",
-  merchant: "#c084fc",
-  network: "#f472b6",
-};
-
 const LAYER_COLOR: Record<string, string> = {
   L1: "#f59e0b",
   L2: "#34d399",
@@ -105,7 +97,7 @@ export function ConceptStage({
   const injectionBindings = useBindingLines(injectionBindingCtx);
   if (!event) {
     return (
-      <div className="h-full overflow-auto p-6 flex flex-col items-center justify-center text-center">
+      <div className="p-6 flex flex-col items-center justify-center text-center">
         <div className="text-xs uppercase tracking-wider text-[#7b87a8] mb-2">
           {totalEvents === 0 ? "Concept Stage" : "Select a step"}
         </div>
@@ -122,7 +114,7 @@ export function ConceptStage({
   const color = ROLE_COLOR[event.role] ?? "#7b87a8";
 
   return (
-    <div className="h-full overflow-auto p-6">
+    <div className="p-6">
       {/* Step header */}
       <div className="flex items-center gap-2 mb-4">
         <span
@@ -161,6 +153,16 @@ export function ConceptStage({
           <p className="text-[13px] text-[#7b87a8] leading-relaxed italic">
             {narrative.why}
           </p>
+          {narrative.plain_payments && (
+            <div className="mt-3 rounded-md border border-[#1f2a4a] bg-[#0b1020] px-3 py-2">
+              <div className="text-[10px] uppercase tracking-wider text-[#7b87a8] mb-1 font-semibold">
+                In payments terms
+              </div>
+              <p className="text-[13px] text-[#d4dcf0] leading-relaxed">
+                {narrative.plain_payments}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

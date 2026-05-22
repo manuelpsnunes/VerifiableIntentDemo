@@ -1,38 +1,12 @@
 import { motion } from "framer-motion";
 import type { FlowEvent, Role } from "../types";
+import { ROLE_COLOR, ROLE_GLYPH, ROLE_LABEL } from "../roleTheme";
 
 interface Props {
   events: FlowEvent[];
   selectedStep: number | null;
   onSelect: (step: number) => void;
 }
-
-const ROLE_COLOR: Record<Role, string> = {
-  system: "#7b87a8",
-  issuer: "#f59e0b",
-  wallet: "#34d399",
-  agent: "#7aa2ff",
-  merchant: "#c084fc",
-  network: "#f472b6",
-};
-
-const ROLE_GLYPH: Record<Role, string> = {
-  system: "·",
-  issuer: "I",
-  wallet: "W",
-  agent: "A",
-  merchant: "M",
-  network: "N",
-};
-
-const ROLE_LABEL: Record<Role, string> = {
-  system: "System",
-  issuer: "Issuer",
-  wallet: "Wallet",
-  agent: "Agent",
-  merchant: "Merchant",
-  network: "Network",
-};
 
 const ROLES: Role[] = ["issuer", "wallet", "agent", "merchant", "network"];
 

@@ -11,6 +11,14 @@ export interface Narrative {
   summary: string;
   why: string;
   learning_objective?: string;
+  /**
+   * One short sentence (≤ ~110 chars) that anchors this step in *traditional,
+   * pre-agentic* payment terminology (PAN, DPAN, EMV cryptogram, AUTH code…).
+   * Surfaced in the Concept Stage, the Detail Panel, and as a one-liner under
+   * the Stakeholder Graph. Optional; omit when no faithful analog exists
+   * (e.g. L2 mandates have no legacy equivalent — agents are new).
+   */
+  plain_payments?: string;
   look_at?: string[];
 }
 
@@ -22,6 +30,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "Everything from here is signed with real ES256 keys. Five parties take part, and each verification step uses only public keys.",
     learning_objective:
       "VI is a chain of three credential layers (L1 → L2 → L3) that lets an agent act on a user's behalf without ever holding the user's payment secret.",
+    plain_payments:
+      "Like a card payment — but the cardholder isn't present; an AI agent checks out within pre-signed limits.",
     look_at: ["prompt", "budget_usd"],
   },
 
@@ -32,6 +42,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "Every signature in the rest of the demo is verifiable against exactly one of these public keys. There are no shared secrets and no central trust authority.",
     learning_objective:
       "Trust in VI rests on public-key cryptography, not shared secrets — each role has its own ES256 keypair and only ever publishes the public half.",
+    plain_payments:
+      "Each role generates its own ES256 keypair. Closest analog: per-device keys in EMV chip auth, with no central CA.",
     look_at: ["keys"],
   },
 
@@ -42,6 +54,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "The user's email is a selectively-disclosable claim: it appears as a hash inside the signed payload (_sd) and the cleartext value lives in the disclosures array. Verifiers see only what gets handed to them.",
     learning_objective:
       "L1 anchors the chain: the issuer signs it, and cnf.jwk pins it to exactly one user device key — no other key can derive children from this L1.",
+    plain_payments:
+      "Like Apple Pay minting a network token (DPAN) into your phone — issuer-signed, bound to the wallet's key.",
     look_at: ["credential.header", "credential.payload", "credential.disclosures"],
   },
 
@@ -52,6 +66,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "The sd_hash field cryptographically binds this L2 to the parent L1. The agent inherits authority only inside this envelope; the user's PAN and identity stay inside L1.",
     learning_objective:
       "L2 is where the user expresses intent: sd_hash binds it to L1 (the parent), and cnf.jwk hands a fresh delegated key to the agent — bounded by four signed constraints.",
+    plain_payments:
+      "A signed 'spending permission slip' the cardholder hands the agent. No legacy analog — agents are the new piece.",
     look_at: [
       "credential.payload.constraints",
       "credential.payload.cnf",
@@ -66,6 +82,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "Nothing the agent does later can step outside this set. The constraints are signed by the user's wallet — the agent cannot rewrite them.",
     learning_objective:
       "Constraints are signed inputs to the agent, not configuration — the agent reads them, but the wallet's signature is what gives them legal/cryptographic force.",
+    plain_payments:
+      "Like a corporate card with a vendor allowlist and per-transaction cap — but the limits are cryptographic, not policy.",
     look_at: ["acceptable_items", "allowed_merchants", "max_amount_cents"],
   },
 
@@ -76,6 +94,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "The agent has no key that can bypass L2's constraints. Its only freedom is choosing within them — and that choice will be re-checked by the network in step 9.",
     learning_objective:
       "The LLM's only role is *choosing* within the signed envelope — it never signs anything that could break the chain.",
+    plain_payments:
+      "Agent picks a SKU from the allowed list — it physically cannot add anything outside that list.",
     look_at: ["pick.sku", "pick.rationale", "product"],
   },
 
@@ -86,6 +106,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "This JWT becomes the canonical record that both agent and network reference by SHA-256 hash. If anyone tampers with the cart later, the hashes break and verification fails.",
     learning_objective:
       "The checkout JWT is the single source of truth for what was bought — every later reference to the cart goes through its SHA-256 hash.",
+    plain_payments:
+      "Merchant signs the cart — a tamper-evident itemized receipt that locks in the line items before payment.",
     look_at: ["serialized", "payload.line_items", "checkout_hash"],
   },
 
@@ -96,6 +118,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "Both L3s point back to L2 via delegate_payload disclosure hashes. The transaction_id in L3a equals the checkout_hash in L3b — that's how the network and merchant link a single transaction across two messages they each only see half of.",
     learning_objective:
       "L3 splits the transaction in two: L3a for the network (knows payment, not cart), L3b for the merchant (knows cart, not budget). Both share transaction_id == checkout_hash.",
+    plain_payments:
+      "Like an EMV cryptogram, split in two: L3a for the network (amount), L3b for the merchant (cart), linked by a shared id.",
     look_at: [
       "l3a.payload.delegate_payload",
       "l3b.payload.delegate_payload",
@@ -113,6 +137,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "Each party sees a different slice of L2 (selective disclosure). The network never sees the line items; the merchant never sees the budget envelope. Both verify only public-key signatures and binding hashes — no shared secret.",
     learning_objective:
       "Each verifier sees only the L2 disclosures it needs — yet both compute the same sd_hash back to L1, proving the chain is intact without leaking the other party's data.",
+    plain_payments:
+      "Same step as a card terminal validating the EMV chip + cryptogram — except each verifier here only sees its own slice.",
     look_at: ["chain_valid", "constraints_satisfied", "checks_performed"],
   },
 
@@ -123,6 +149,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "The user's wallet never spoke to the merchant. The merchant never saw the budget. The network never saw the cart. Each verification used only what that party needed — and the cryptographic chain stitched them together.",
     learning_objective:
       "Authorization is the network's contractual commitment — it ran every verification *before* approving, and any chain failure would have stopped settlement.",
+    plain_payments:
+      "The card network's approval code (AUTH-*) — the same role Visa or Mastercard play on every contactless tap today.",
     look_at: ["authorization_id", "amount", "currency", "payee"],
   },
 
@@ -133,6 +161,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "Common reasons: amount exceeds the demo cap ($1000), or PAYMENT_NETWORK_MODE was set to something other than 'mock' without a real adapter wired in.",
     learning_objective:
       "Decline is a first-class outcome: VI doesn't just verify, it *enforces*, and the network is the final gate.",
+    plain_payments:
+      "Like an issuer refusing a card payment — over-limit, wrong merchant category, or a failed cryptogram.",
     look_at: ["reason"],
   },
 
@@ -143,6 +173,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "The user's PAN never left the issuer. The items bought never left the merchant. The agent never had power to spend outside L2's constraints. That's the entire point of Verifiable Intent.",
     learning_objective:
       "End state: every party verified what it needed, nothing more — and the agent operated entirely within a cryptographic envelope it could not break.",
+    plain_payments:
+      "Every verifier confirmed the agent stayed inside the cardholder's pre-signed envelope — chain holds end-to-end.",
     look_at: ["summary"],
   },
 
@@ -152,6 +184,8 @@ export const NARRATIVES: Record<string, Narrative> = {
     why: "See the error payload for details. In a real system any verification failure would also stop the transaction here.",
     learning_objective:
       "Failure modes are the point: VI is designed so that breaking the chain produces specific, attributable rejections — not silent corruption.",
+    plain_payments:
+      "Hard stop — like a chip reader refusing to authorize when the cryptogram doesn't validate.",
     look_at: ["error", "error_type"],
   },
 };

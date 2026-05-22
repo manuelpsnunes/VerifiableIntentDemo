@@ -1,4 +1,5 @@
 import type { FlowEvent, Role } from "../types";
+import { ROLE_COLOR, ROLE_GLYPH, ROLE_LABEL, PARTIES as ALL_PARTIES } from "../roleTheme";
 
 interface Props {
   events: FlowEvent[];
@@ -16,27 +17,27 @@ interface CellState {
   note?: string;
 }
 
-const PARTIES: Party[] = ["issuer", "wallet", "agent", "merchant", "network"];
+const PARTIES: Party[] = ALL_PARTIES;
 const PARTY_GLYPH: Record<Party, string> = {
-  issuer: "I",
-  wallet: "W",
-  agent: "A",
-  merchant: "M",
-  network: "N",
+  issuer: ROLE_GLYPH.issuer,
+  wallet: ROLE_GLYPH.wallet,
+  agent: ROLE_GLYPH.agent,
+  merchant: ROLE_GLYPH.merchant,
+  network: ROLE_GLYPH.network,
 };
 const PARTY_COLOR: Record<Party, string> = {
-  issuer: "#f59e0b",
-  wallet: "#34d399",
-  agent: "#7aa2ff",
-  merchant: "#c084fc",
-  network: "#f472b6",
+  issuer: ROLE_COLOR.issuer,
+  wallet: ROLE_COLOR.wallet,
+  agent: ROLE_COLOR.agent,
+  merchant: ROLE_COLOR.merchant,
+  network: ROLE_COLOR.network,
 };
 const PARTY_LABEL: Record<Party, string> = {
-  issuer: "Issuer",
-  wallet: "Wallet",
-  agent: "Agent",
-  merchant: "Merchant",
-  network: "Network",
+  issuer: ROLE_LABEL.issuer,
+  wallet: ROLE_LABEL.wallet,
+  agent: ROLE_LABEL.agent,
+  merchant: ROLE_LABEL.merchant,
+  network: ROLE_LABEL.network,
 };
 
 const CREDENTIALS = ["L1", "L2", "L3a", "L3b"] as const;
@@ -213,7 +214,7 @@ export function DisclosureMatrix({
   const injectionActive = injectionEvents.length > 0 && injectionMode;
 
   return (
-    <div className="h-full overflow-auto p-3">
+    <div className="p-3">
       <div className="text-[10px] uppercase tracking-wider text-[#7b87a8] font-semibold mb-2 flex items-center gap-2">
         <span>Who knows what</span>
         <span className="font-mono normal-case text-[#4f5a7e]">

@@ -7,6 +7,7 @@ import { ConceptStage } from "./components/ConceptStage";
 import { RoleHistoryStrip } from "./components/RoleHistoryStrip";
 import { SpecDrawer } from "./components/SpecDrawer";
 import { DisclosureMatrix } from "./components/DisclosureMatrix";
+import { StakeholderGraph } from "./components/StakeholderGraph";
 import { FailureInjector } from "./components/FailureInjector";
 import { getSpecRef } from "./specRefs";
 
@@ -111,7 +112,7 @@ export default function App() {
     | undefined;
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="min-h-full w-full flex flex-col">
       {/* Header */}
       <header className="border-b border-[#1f2a4a] px-6 py-4 flex items-center gap-6">
         <div>
@@ -289,8 +290,8 @@ export default function App() {
       </section>
 
       {/* Main grid: Concept Stage centerpiece + Inspector */}
-      <div className="flex-1 grid grid-cols-12 gap-3 p-3 overflow-hidden min-h-0">
-        <div className="col-span-8 rounded-lg border border-[#1f2a4a] bg-[#111933] min-h-0 overflow-hidden">
+      <div className="grid grid-cols-12 gap-3 p-3">
+        <div className="col-span-8 rounded-lg border border-[#1f2a4a] bg-[#111933]">
           <div className="px-4 py-2 text-xs uppercase tracking-wider text-[#7b87a8] border-b border-[#1f2a4a] flex items-center gap-2">
             <span>Concept stage</span>
             {selected && (
@@ -309,7 +310,7 @@ export default function App() {
               </button>
             )}
           </div>
-          <div className="h-[calc(100%-33px)]">
+          <div>
             <ConceptStage
               event={selected}
               totalEvents={events.length}
@@ -320,26 +321,36 @@ export default function App() {
             />
           </div>
         </div>
-        <div className="col-span-4 rounded-lg border border-[#1f2a4a] bg-[#111933] min-h-0 overflow-hidden">
-          <div className="px-4 py-2 text-xs uppercase tracking-wider text-[#7b87a8] border-b border-[#1f2a4a] flex items-center gap-2">
-            <span>Disclosure matrix</span>
-            {selected && (
-              <button
-                onClick={() => setSpecOpen(true)}
-                className="ml-auto text-[10px] uppercase tracking-wider text-[#7aa2ff] hover:text-white"
-                title="Open the spec drawer for raw payload (S)"
-              >
-                Raw payload · Spec ↗
-              </button>
-            )}
+        <div className="col-span-4 space-y-3">
+          <div className="rounded-lg border border-[#1f2a4a] bg-[#111933]">
+            <div className="px-4 py-2 text-xs uppercase tracking-wider text-[#7b87a8] border-b border-[#1f2a4a] flex items-center gap-2">
+              <span>Disclosure matrix</span>
+              {selected && (
+                <button
+                  onClick={() => setSpecOpen(true)}
+                  className="ml-auto text-[10px] uppercase tracking-wider text-[#7aa2ff] hover:text-white"
+                  title="Open the spec drawer for raw payload (S)"
+                >
+                  Raw payload · Spec ↗
+                </button>
+              )}
+            </div>
+            <div>
+              <DisclosureMatrix
+                events={events}
+                selectedStep={selectedStep}
+                injectionEvents={injectionEvents}
+                injectionMode={injectionMode}
+              />
+            </div>
           </div>
-          <div className="h-[calc(100%-33px)]">
-            <DisclosureMatrix
-              events={events}
-              selectedStep={selectedStep}
-              injectionEvents={injectionEvents}
-              injectionMode={injectionMode}
-            />
+          <div className="rounded-lg border border-[#1f2a4a] bg-[#111933]">
+            <div className="px-4 py-2 text-xs uppercase tracking-wider text-[#7b87a8] border-b border-[#1f2a4a]">
+              Stakeholder graph
+            </div>
+            <div>
+              <StakeholderGraph />
+            </div>
           </div>
         </div>
       </div>

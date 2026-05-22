@@ -1,20 +1,12 @@
 import { motion } from "framer-motion";
 import type { FlowEvent } from "../types";
+import { ROLE_COLOR } from "../roleTheme";
 
 interface Props {
   events: FlowEvent[];
   selectedStep: number | null;
   onSelect: (step: number) => void;
 }
-
-const ROLE_COLOR: Record<string, string> = {
-  system: "#7b87a8",
-  issuer: "#f59e0b",
-  wallet: "#34d399",
-  agent: "#7aa2ff",
-  merchant: "#c084fc",
-  network: "#f472b6",
-};
 
 export function Timeline({ events, selectedStep, onSelect }: Props) {
   return (
