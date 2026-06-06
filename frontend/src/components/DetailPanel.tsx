@@ -65,6 +65,22 @@ export function DetailPanel({ event }: Props) {
               {narrative.plain_payments}
             </div>
           )}
+          {narrative.real_world && (
+            <div className="mt-2 pt-2 border-t border-[#1f2a4a] text-[12px] text-[#d4dcf0] leading-relaxed">
+              <span className="text-emerald-400 uppercase tracking-wider text-[9px] font-semibold mr-2">
+                In real life
+              </span>
+              {narrative.real_world}
+            </div>
+          )}
+          {narrative.production_note && (
+            <div className="mt-2 pt-2 border-t border-[#1f2a4a] text-[12px] text-[#d4dcf0] leading-relaxed">
+              <span className="text-amber-400 uppercase tracking-wider text-[9px] font-semibold mr-2">
+                In production
+              </span>
+              {narrative.production_note}
+            </div>
+          )}
           {narrative.look_at && narrative.look_at.length > 0 && (            <div className="mt-2 pt-2 border-t border-[#1f2a4a]">
               <div className="text-xs uppercase tracking-wider text-[#7b87a8] mb-1">
                 Worth opening below

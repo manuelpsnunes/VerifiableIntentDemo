@@ -3,6 +3,7 @@
 
 export type Role =
   | "system"
+  | "user"
   | "issuer"
   | "wallet"
   | "agent"

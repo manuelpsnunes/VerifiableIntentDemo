@@ -28,3 +28,7 @@ backend/keys/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local chat export utilities
+chat-export.md
+export-chat.ps1

@@ -24,9 +24,11 @@ divergence) and emits structured events over a WebSocket. A Vite + React fronten
 panel per role.
 
 ```
-Issuer ──L1──▶ User Wallet ──L2──▶ Agent ──┬──L3b──▶ Merchant
-                                           └──L3a──▶ Payment Network
+Issuer ==(L1, at enrollment)==> User Wallet ──L2──▶ Agent ──┬──L3b──▶ Merchant
+                                                            └──L3a──▶ Payment Network
 ```
+
+The `==>` arrow happens once during card enrollment; the `──▶` arrows happen on every purchase.
 
 ## Quick start
 
@@ -70,6 +72,11 @@ click **Run Demo**, and watch the credential chain build itself.
   `allowed_payees` SD references. Marked in `roles/network.py`.
 - **Spec anchors in `frontend/src/specRefs.ts` are best-effort** — the published spec page
   may have moved sections; update anchors there if you spot a stale link.
+- **L1 issuance is inlined.** In production, L1 is issued ONCE during user
+  enrollment with the Credential Provider (via the chosen issuance protocol,
+  e.g. OpenID4VCI) and stored in the wallet. Every later purchase reuses that
+  stored L1 — the issuer is not contacted per transaction. The demo re-issues
+  L1 on every run so the full L1→L2→L3 chain is visible in one timeline.
 
 ## Status
 

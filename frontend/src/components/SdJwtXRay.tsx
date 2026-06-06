@@ -25,6 +25,43 @@ function shortHash(h?: string, len = 10): string {
   return h.length > len + 3 ? `${h.slice(0, len)}…` : h;
 }
 
+/**
+ * Decompose an SD-JWT compact serialization into its on-the-wire segments:
+ *   <HEADER>.<PAYLOAD>.<SIGNATURE>~<DISCLOSURE>~<DISCLOSURE>~...
+ * Each piece is base64url. The dots separate the JWS parts; the tildes
+ * separate appended SD-JWT disclosures.
+ */
+function decomposeSerialized(serialized?: string): {
+  header: string;
+  payload: string;
+  signature: string;
+  disclosures: string[];
+} | null {
+  if (!serialized) return null;
+  // Strip a trailing ~ that SD-JWT compact form uses as a sentinel.
+  const trimmed = serialized.endsWith("~") ? serialized.slice(0, -1) : serialized;
+  const tildeParts = trimmed.split("~");
+  const jwt = tildeParts[0] ?? "";
+  const disclosures = tildeParts.slice(1).filter(Boolean);
+  const dotParts = jwt.split(".");
+  if (dotParts.length !== 3) return null;
+  return {
+    header: dotParts[0],
+    payload: dotParts[1],
+    signature: dotParts[2],
+    disclosures,
+  };
+}
+
+// Tailwind-color tokens kept consistent with the existing quadrant colors so
+// the wire-format strip visually maps 1:1 to the inspector panels below it.
+const SEG_COLOR = {
+  header: "#7aa2ff",
+  payload: "#34d399",
+  signature: "#f472b6",
+  disclosure: "#facc15",
+} as const;
+
 function Quadrant({
   title,
   count,
@@ -84,6 +121,62 @@ export function SdJwtXRay({ data, title, layerColor = "#7aa2ff" }: Props) {
           hover a disclosure to bind it to its _sd hash
         </span>
       </div>
+
+      {/* Wire-format strip: shows the on-the-wire compact serialization with
+          each base64url segment color-coded to the matching inspector quadrant
+          below. Separators "." (JWS) and "~" (SD-JWT disclosure) are dimmed
+          so the segment boundaries pop out visually. */}
+      {(() => {
+        const decomposed = decomposeSerialized(data.serialized);
+        if (!decomposed) return null;
+        const seg = (text: string, color: string, label: string) => (
+          <span
+            className="px-1 rounded font-mono break-all"
+            style={{ background: color + "18", color }}
+            title={`${label} (${text.length} chars base64url)`}
+          >
+            {shortHash(text, 18)}
+          </span>
+        );
+        const dot = <span className="text-[#7b87a8] mx-0.5">.</span>;
+        const tilde = <span className="text-[#7b87a8] mx-0.5">~</span>;
+        return (
+          <div className="px-4 py-2 border-b border-[#1f2a4a] bg-[#0a0f25] text-[10px] leading-snug">
+            <div className="text-[9px] uppercase tracking-wider text-[#7b87a8] mb-1 font-semibold">
+              Compact wire format · what actually travels over the wire
+            </div>
+            <div className="flex flex-wrap items-baseline gap-y-1">
+              {seg(decomposed.header, SEG_COLOR.header, "HEADER")}
+              {dot}
+              {seg(decomposed.payload, SEG_COLOR.payload, "PAYLOAD")}
+              {dot}
+              {seg(decomposed.signature, SEG_COLOR.signature, "SIGNATURE")}
+              {decomposed.disclosures.map((d, i) => (
+                <span key={i} className="flex items-baseline">
+                  {tilde}
+                  {seg(d, SEG_COLOR.disclosure, `DISCLOSURE #${i + 1}`)}
+                </span>
+              ))}
+              {tilde}
+            </div>
+            <div className="mt-1.5 text-[9px] text-[#4f5a7e] flex flex-wrap gap-x-3 gap-y-0.5">
+              <span>
+                <span style={{ color: SEG_COLOR.header }}>■</span> header
+              </span>
+              <span>
+                <span style={{ color: SEG_COLOR.payload }}>■</span> payload
+              </span>
+              <span>
+                <span style={{ color: SEG_COLOR.signature }}>■</span> signature
+              </span>
+              <span>
+                <span style={{ color: SEG_COLOR.disclosure }}>■</span> disclosure(s)
+              </span>
+              <span className="text-[#4f5a7e]">all base64url · "." = JWS separator · "~" = SD-JWT disclosure separator</span>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="grid grid-cols-2 gap-2 p-2" style={{ minHeight: 220 }}>
         {/* Header */}
@@ -186,27 +279,39 @@ export function SdJwtXRay({ data, title, layerColor = "#7aa2ff" }: Props) {
 
         {/* Signature */}
         <Quadrant title="Signature" color="#f472b6">
-          {data.serialized ? (
-            <>
-              <div className="text-[#7b87a8] mb-1">
-                ES256 over header.payload (last segment of the JWT):
-              </div>
-              <div className="text-[#f472b6] break-all">
-                {(() => {
-                  const parts = data.serialized.split(".");
-                  // serialized SD-JWT is jwt~disclosure~disclosure
-                  const jwtPart = parts[0]?.split("~")[0] ?? "";
-                  const sig = jwtPart.split(".")[2] ?? data.serialized.slice(-40);
-                  return shortHash(sig, 32);
-                })()}
-              </div>
-              <div className="mt-2 text-[9px] text-[#4f5a7e]">
-                Verified against the issuer's public key (no shared secret).
-              </div>
-            </>
-          ) : (
-            <div className="text-[#4f5a7e] italic">No serialized form.</div>
-          )}
+          {(() => {
+            const decomposed = decomposeSerialized(data.serialized);
+            if (!decomposed) {
+              return <div className="text-[#4f5a7e] italic">No serialized form.</div>;
+            }
+            return (
+              <>
+                <div className="text-[#7b87a8] mb-1">
+                  Third segment of the JWS · base64url(64-byte ECDSA r∥s):
+                </div>
+                <div className="text-[#f472b6] break-all">
+                  {shortHash(decomposed.signature, 40)}
+                </div>
+                <div className="mt-2 pt-2 border-t border-[#1f2a4a] text-[9px] text-[#7b87a8] font-mono leading-snug">
+                  <div className="text-[#f472b6] mb-0.5">how this was signed:</div>
+                  <div>
+                    sig = <span className="text-white">ECDSA_sign</span>(
+                  </div>
+                  <div className="pl-3">
+                    <span className="text-white">private_key</span>,
+                  </div>
+                  <div className="pl-3">
+                    <span className="text-white">SHA-256</span>(b64u(header) + "." + b64u(payload))
+                  </div>
+                  <div>)</div>
+                </div>
+                <div className="mt-2 text-[9px] text-[#4f5a7e]">
+                  Verified against the issuer's public key (no shared secret).
+                  Tamper any byte of header or payload → verification fails.
+                </div>
+              </>
+            );
+          })()}
         </Quadrant>
       </div>
     </div>

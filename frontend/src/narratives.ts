@@ -19,6 +19,21 @@ export interface Narrative {
    * (e.g. L2 mandates have no legacy equivalent — agents are new).
    */
   plain_payments?: string;
+  /**
+   * Optional callout explaining how this step would differ in a real
+   * production deployment vs. how the demo runs it inline for visibility.
+   * Surfaced as a distinct "In production" badge in the Concept Stage and
+   * Detail Panel.
+   */
+  production_note?: string;
+  /**
+   * Optional plain-language sentence describing what THIS step would look like
+   * to a user in a real ChatGPT-style autonomous shopping flow. Used to bring
+   * tangibility — e.g. "Your phone buzzes: 'ChatGPT wants to spend up to $400
+   * at Tennis Warehouse on a Babolat racket. Approve with Face ID?'". Rendered
+   * as a green "In real life" callout.
+   */
+  real_world?: string;
   look_at?: string[];
 }
 
@@ -32,6 +47,8 @@ export const NARRATIVES: Record<string, Narrative> = {
       "VI is a chain of three credential layers (L1 → L2 → L3) that lets an agent act on a user's behalf without ever holding the user's payment secret.",
     plain_payments:
       "Like a card payment — but the cardholder isn't present; an AI agent checks out within pre-signed limits.",
+    real_world:
+      "You type 'Buy me a good Babolat racket under $400' into ChatGPT and hit send. From your side, this is the only thing you do until you see the confirmation.",
     look_at: ["prompt", "budget_usd"],
   },
 
@@ -44,30 +61,38 @@ export const NARRATIVES: Record<string, Narrative> = {
       "Trust in VI rests on public-key cryptography, not shared secrets — each role has its own ES256 keypair and only ever publishes the public half.",
     plain_payments:
       "Each role generates its own ES256 keypair. Closest analog: per-device keys in EMV chip auth, with no central CA.",
+    real_world:
+      "Already done long ago. Your wallet's key lives in the most secure place your platform offers — Secure Enclave on iPhone, StrongBox/Keystore on Android, TPM on Windows, or HSMs at Stripe/Google/your bank for server-side wallets. Visa/Mastercard and the merchant manage their own keys in HSMs. Nobody generates keys at purchase time.",
     look_at: ["keys"],
   },
 
   l1_issued: {
-    title: "Issuer signs the L1 card credential",
+    title: "L1 card credential (issuer-signed) loaded into the wallet",
     summary:
-      "The card network (the issuer) signs an SD-JWT L1 credential. It binds the user's device public key via cnf.jwk — only that key can later derive child credentials.",
+      "The wallet surfaces the L1 SD-JWT it holds for this card. The issuer signed it at enrollment, binding the user's device public key via cnf.jwk — only that key can later derive child credentials. The demo re-signs it on each run for visibility, but in production this credential is reused unchanged across purchases.",
     why: "The user's email is a selectively-disclosable claim: it appears as a hash inside the signed payload (_sd) and the cleartext value lives in the disclosures array. Verifiers see only what gets handed to them.",
     learning_objective:
-      "L1 anchors the chain: the issuer signs it, and cnf.jwk pins it to exactly one user device key — no other key can derive children from this L1.",
+      "L1 anchors the chain: the issuer's signature gives it authority, and cnf.jwk pins it to exactly one user device key — no other key can derive children from this L1.",
     plain_payments:
       "Like Apple Pay minting a network token (DPAN) into your phone — issuer-signed, bound to the wallet's key.",
+    production_note:
+      "In production, L1 is issued ONCE during user enrollment with the Credential Provider (via the chosen issuance protocol, e.g. OpenID4VCI) and stored in the wallet. Every later purchase reuses that stored L1 — the issuer is not contacted per transaction. The demo re-issues L1 on every run so the full chain is visible in one timeline.",
+    real_world:
+      "Your Apple Wallet (or bank app) already shows the Mastercard you added months ago — that's the L1, signed by the card network at enrollment and sitting on your phone.",
     look_at: ["credential.header", "credential.payload", "credential.disclosures"],
   },
 
   l2_created: {
     title: "Wallet signs the L2 mandate (autonomous mode)",
     summary:
-      "The user's wallet signs an L2 KB-SD-JWT mandate. It encodes four constraints — allowed merchants, acceptable line items, payment-amount range, and allowed payees — and delegates execution to the agent's key via cnf.jwk.",
+      "The user's wallet signs an L2 KB-SD-JWT+KB mandate (the +KB form carries onward key binding so the agent can later sign L3). It encodes four constraints — allowed merchants, acceptable line items, payment-amount range, and allowed payees — and delegates execution to the agent's key via cnf.jwk.",
     why: "The sd_hash field cryptographically binds this L2 to the parent L1. The agent inherits authority only inside this envelope; the user's PAN and identity stay inside L1.",
     learning_objective:
       "L2 is where the user expresses intent: sd_hash binds it to L1 (the parent), and cnf.jwk hands a fresh delegated key to the agent — bounded by four signed constraints.",
     plain_payments:
       "A signed 'spending permission slip' the cardholder hands the agent. No legacy analog — agents are the new piece.",
+    real_world:
+      "Your phone buzzes: 'ChatGPT wants to spend up to $400 at Tennis Warehouse on a Babolat racket. Approve with Face ID?' You approve — that one tap is what creates this L2.",
     look_at: [
       "credential.payload.constraints",
       "credential.payload.cnf",
@@ -78,12 +103,16 @@ export const NARRATIVES: Record<string, Narrative> = {
   constraints_extracted: {
     title: "Agent reads its boundaries",
     summary:
-      "The agent resolves selectively-disclosed claims out of L2: the catalog of acceptable items, the merchant allowlist, and the budget range. These are the bounds inside which it is allowed to act.",
-    why: "Nothing the agent does later can step outside this set. The constraints are signed by the user's wallet — the agent cannot rewrite them.",
+      "The agent resolves selectively-disclosed claims out of L2: the merchant allowlist, the catalog of acceptable items, and the budget range. It did NOT discover any of these — the wallet decided them at consent time and signed them in. The agent's only job here is to read them.",
+    why: "Nothing the agent does later can step outside this set. The constraints are signed by the user's wallet — the agent cannot rewrite them, add merchants, or expand the catalog.",
     learning_objective:
-      "Constraints are signed inputs to the agent, not configuration — the agent reads them, but the wallet's signature is what gives them legal/cryptographic force.",
+      "Constraints are signed *inputs* to the agent, not outputs of agent discovery — the wallet decides what's allowed during consent, the agent only chooses within that envelope.",
     plain_payments:
       "Like a corporate card with a vendor allowlist and per-transaction cap — but the limits are cryptographic, not policy.",
+    real_world:
+      "ChatGPT now knows the exact boundaries you approved at consent time: ≤ $400, Tennis Warehouse only, Babolat rackets only. It cannot widen them, even if asked nicely.",
+    production_note:
+      "How does the wallet decide the merchant/SKU allowlists in the first place? Common patterns: (a) user picks merchants on the consent screen, (b) agent proposes a single SKU and user approves that exact one, (c) user has standing rules in their wallet (e.g. 'always allow REI'), or (d) open mandate with no merchant lock and looser caps. The demo hardcodes a single merchant + 3 Babolat SKUs in backend/app/catalog.py for simplicity; production wallets do this translation as part of their UX.",
     look_at: ["acceptable_items", "allowed_merchants", "max_amount_cents"],
   },
 
@@ -96,6 +125,8 @@ export const NARRATIVES: Record<string, Narrative> = {
       "The LLM's only role is *choosing* within the signed envelope — it never signs anything that could break the chain.",
     plain_payments:
       "Agent picks a SKU from the allowed list — it physically cannot add anything outside that list.",
+    real_world:
+      "ChatGPT browses Tennis Warehouse, picks the Babolat Pure Aero ($279.99), and tells you: 'I chose this one — top-rated all-court racket, fits your budget.'",
     look_at: ["pick.sku", "pick.rationale", "product"],
   },
 
@@ -108,6 +139,8 @@ export const NARRATIVES: Record<string, Narrative> = {
       "The checkout JWT is the single source of truth for what was bought — every later reference to the cart goes through its SHA-256 hash.",
     plain_payments:
       "Merchant signs the cart — a tamper-evident itemized receipt that locks in the line items before payment.",
+    real_world:
+      "Tennis Warehouse's server returns a signed receipt locking in the cart (one Babolat Pure Aero, $279.99) before payment is even attempted.",
     look_at: ["serialized", "payload.line_items", "checkout_hash"],
   },
 
@@ -120,6 +153,8 @@ export const NARRATIVES: Record<string, Narrative> = {
       "L3 splits the transaction in two: L3a for the network (knows payment, not cart), L3b for the merchant (knows cart, not budget). Both share transaction_id == checkout_hash.",
     plain_payments:
       "Like an EMV cryptogram, split in two: L3a for the network (amount), L3b for the merchant (cart), linked by a shared id.",
+    real_world:
+      "ChatGPT splits the order: tells Tennis Warehouse 'here's the cart' and tells Mastercard 'here's $279.99 to authorize'. Neither sees the other half.",
     look_at: [
       "l3a.payload.delegate_payload",
       "l3b.payload.delegate_payload",
@@ -139,6 +174,8 @@ export const NARRATIVES: Record<string, Narrative> = {
       "Each verifier sees only the L2 disclosures it needs — yet both compute the same sd_hash back to L1, proving the chain is intact without leaking the other party's data.",
     plain_payments:
       "Same step as a card terminal validating the EMV chip + cryptogram — except each verifier here only sees its own slice.",
+    real_world:
+      "Tennis Warehouse and Mastercard each independently check the signatures. Neither needs to trust ChatGPT — they trust your signature, which was the Face ID tap.",
     look_at: ["chain_valid", "constraints_satisfied", "checks_performed"],
   },
 
@@ -151,6 +188,8 @@ export const NARRATIVES: Record<string, Narrative> = {
       "Authorization is the network's contractual commitment — it ran every verification *before* approving, and any chain failure would have stopped settlement.",
     plain_payments:
       "The card network's approval code (AUTH-*) — the same role Visa or Mastercard play on every contactless tap today.",
+    real_world:
+      "Mastercard returns the AUTH code. Tennis Warehouse ships your racket. ChatGPT replies in the chat: 'Done! Babolat Pure Aero, ships Friday.'",
     look_at: ["authorization_id", "amount", "currency", "payee"],
   },
 
@@ -163,6 +202,8 @@ export const NARRATIVES: Record<string, Narrative> = {
       "Decline is a first-class outcome: VI doesn't just verify, it *enforces*, and the network is the final gate.",
     plain_payments:
       "Like an issuer refusing a card payment — over-limit, wrong merchant category, or a failed cryptogram.",
+    real_world:
+      "Mastercard refuses — maybe over-limit, maybe a flagged merchant. ChatGPT tells you: 'I couldn't complete the purchase.' Nothing was charged.",
     look_at: ["reason"],
   },
 
@@ -175,6 +216,8 @@ export const NARRATIVES: Record<string, Narrative> = {
       "End state: every party verified what it needed, nothing more — and the agent operated entirely within a cryptographic envelope it could not break.",
     plain_payments:
       "Every verifier confirmed the agent stayed inside the cardholder's pre-signed envelope — chain holds end-to-end.",
+    real_world:
+      "From your side: one Face ID prompt, one chat reply with the order confirmation. Everything else happened silently and verifiably.",
     look_at: ["summary"],
   },
 
@@ -186,6 +229,8 @@ export const NARRATIVES: Record<string, Narrative> = {
       "Failure modes are the point: VI is designed so that breaking the chain produces specific, attributable rejections — not silent corruption.",
     plain_payments:
       "Hard stop — like a chip reader refusing to authorize when the cryptogram doesn't validate.",
+    real_world:
+      "ChatGPT comes back in the chat: 'I ran into a problem and stopped — no charge was made.' The chain failure is what protected you.",
     look_at: ["error", "error_type"],
   },
 };

@@ -43,7 +43,7 @@ Cross-binding:
 | --- | -------- | ----------------------- | -------------------------------------------------------------------------------- |
 | 0   | system   | `demo_started`          | Echoes prompt + budget.                                                          |
 | 1   | system   | `enrollment`            | Broadcasts every role's public JWK + kid.                                        |
-| 2   | issuer   | `l1_issued`             | Issuer SD-JWT signed; held by user wallet.                                       |
+| 2   | issuer   | `l1_issued`             | Issuer-signed L1 SD-JWT loaded from the wallet (signed once at enrollment).      |
 | 3   | wallet   | `l2_created`            | Wallet KB-SD-JWT (autonomous) binds agent key, encodes constraints.              |
 | 4   | agent    | `constraints_extracted` | Agent resolves disclosures: acceptable items, allowed merchants, budget.         |
 | 5   | agent    | `product_selected`      | Claude `tool_use` returns chosen SKU + rationale (stub LLM falls back to first). |
@@ -68,8 +68,8 @@ sequenceDiagram
     participant M as Merchant
     participant N as Network (mock)
 
-    I->>U: L1 SD-JWT (cnf=user.jwk)
-    U->>A: L2 KB-SD-JWT autonomous<br/>cnf=agent.jwk, constraints, sd_hash→L1
+    Note over I,U: L1 SD-JWT issued ONCE at enrollment (cnf=user.jwk)<br/>and stored in the wallet — not re-issued per purchase.
+    U->>A: L2 KB-SD-JWT autonomous<br/>cnf=agent.jwk, constraints, sd_hash→L1 (held in wallet)
     A->>A: inspect L2 (disclosures, constraints)
     A->>+M: GET cart → POST checkout
     M-->>-A: checkout_jwt (signed)

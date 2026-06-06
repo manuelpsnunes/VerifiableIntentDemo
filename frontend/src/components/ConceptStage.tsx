@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { FlowEvent } from "../types";
 import { NARRATIVES } from "../narratives";
 import { SdJwtXRay } from "./SdJwtXRay";
@@ -147,46 +147,30 @@ export function ConceptStage({
           <div className="text-xl font-semibold text-white mb-2">
             {narrative.title}
           </div>
-          <p className="text-[15px] text-[#d4dcf0] leading-relaxed mb-3">
+          <p className="text-[15px] text-[#d4dcf0] leading-relaxed mb-2">
             {narrative.summary}
           </p>
           <p className="text-[13px] text-[#7b87a8] leading-relaxed italic">
             {narrative.why}
           </p>
-          {narrative.plain_payments && (
-            <div className="mt-3 rounded-md border border-[#1f2a4a] bg-[#0b1020] px-3 py-2">
-              <div className="text-[10px] uppercase tracking-wider text-[#7b87a8] mb-1 font-semibold">
-                In payments terms
-              </div>
-              <p className="text-[13px] text-[#d4dcf0] leading-relaxed">
-                {narrative.plain_payments}
-              </p>
-            </div>
-          )}
+          <NarrativeLensTabs narrative={narrative} />
         </div>
       )}
 
-      {/* Plain-text summary from the event */}
-      <div className="mb-4 px-3 py-2 rounded-md bg-[#0b1020] border border-[#1f2a4a] text-[13px] text-white/90 font-mono">
-        {event.summary}
-      </div>
-
-      {/* "Look at" hint chips */}
+      {/* "Look at" hint chips — single inline row, no header. */}
       {narrative?.look_at && narrative.look_at.length > 0 && (
-        <div className="mb-4">
-          <div className="text-xs uppercase tracking-wider text-[#7b87a8] mb-1.5">
-            Worth opening in the spec drawer
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {narrative.look_at.map((f) => (
-              <code
-                key={f}
-                className="text-xs px-2 py-1 rounded bg-[#1f2a4a] text-[#7aa2ff] font-mono"
-              >
-                {f}
-              </code>
-            ))}
-          </div>
+        <div className="mb-4 flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-[#7b87a8] uppercase tracking-wider text-[10px]">
+            Inspect:
+          </span>
+          {narrative.look_at.map((f) => (
+            <code
+              key={f}
+              className="px-1.5 py-0.5 rounded bg-[#1f2a4a] text-[#7aa2ff] font-mono text-[11px]"
+            >
+              {f}
+            </code>
+          ))}
         </div>
       )}
 
@@ -317,6 +301,74 @@ export function ConceptStage({
         }
         return null;
       })()}
+    </div>
+  );
+}
+
+// Tabbed "lens" switcher: shows narrative.real_world / plain_payments /
+// production_note one at a time instead of stacking three boxes. Defaults to
+// the most tangible framing ("In real life") when present.
+function NarrativeLensTabs({
+  narrative,
+}: {
+  narrative: {
+    plain_payments?: string;
+    real_world?: string;
+    production_note?: string;
+  };
+}) {
+  type Lens = { id: string; label: string; color: "emerald" | "slate" | "amber"; body: string };
+  const lenses: Lens[] = [];
+  if (narrative.real_world) {
+    lenses.push({ id: "real", label: "In real life", color: "emerald", body: narrative.real_world });
+  }
+  if (narrative.plain_payments) {
+    lenses.push({ id: "payments", label: "In payments terms", color: "slate", body: narrative.plain_payments });
+  }
+  if (narrative.production_note) {
+    lenses.push({ id: "prod", label: "In production", color: "amber", body: narrative.production_note });
+  }
+
+  const [active, setActive] = useState(lenses[0]?.id ?? "");
+  if (lenses.length === 0) return null;
+  const current = lenses.find((l) => l.id === active) ?? lenses[0];
+
+  const colorMap = {
+    emerald: {
+      tab: "border-emerald-500/60 text-emerald-300 bg-emerald-500/10",
+      body: "border-emerald-500/30 bg-emerald-500/5",
+    },
+    slate: {
+      tab: "border-[#2c3a66] text-[#a4b0d0] bg-[#0b1020]",
+      body: "border-[#1f2a4a] bg-[#0b1020]",
+    },
+    amber: {
+      tab: "border-amber-500/60 text-amber-300 bg-amber-500/10",
+      body: "border-amber-500/30 bg-amber-500/5",
+    },
+  } as const;
+  const inactive =
+    "border-[#1f2a4a] text-[#7b87a8] bg-transparent hover:text-white hover:border-[#2c3a66]";
+
+  return (
+    <div className="mt-3">
+      <div className="flex gap-1 mb-2">
+        {lenses.map((l) => (
+          <button
+            key={l.id}
+            onClick={() => setActive(l.id)}
+            className={
+              "text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded border transition " +
+              (l.id === active ? colorMap[l.color].tab : inactive)
+            }
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+      <div className={"rounded-md border px-3 py-2 " + colorMap[current.color].body}>
+        <p className="text-[13px] text-[#d4dcf0] leading-relaxed">{current.body}</p>
+      </div>
     </div>
   );
 }

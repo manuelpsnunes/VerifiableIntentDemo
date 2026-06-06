@@ -10,6 +10,7 @@ import { DisclosureMatrix } from "./components/DisclosureMatrix";
 import { StakeholderGraph } from "./components/StakeholderGraph";
 import { FailureInjector } from "./components/FailureInjector";
 import { getSpecRef } from "./specRefs";
+import { NARRATIVES } from "./narratives";
 
 function statusPill(label: string, ok: boolean | null) {
   const cls = ok === null
@@ -202,6 +203,34 @@ export default function App() {
           </button>
         )}
       </section>
+
+      {/* "ChatGPT example" strip — anchors the abstract chain in a real-life story. */}
+      {(events.length > 0 || sessionActive) && (() => {
+        const activeEvt =
+          (selectedStep !== null && events.find((e) => e.step === selectedStep)) ||
+          events[events.length - 1];
+        const realWorld =
+          activeEvt && NARRATIVES[activeEvt.action]?.real_world;
+        return (
+          <section className="border-b border-emerald-500/20 px-6 py-2 bg-emerald-500/[0.04] flex items-center gap-3 text-xs">
+            <span className="text-emerald-400 font-semibold uppercase tracking-wider shrink-0">
+              In real life
+            </span>
+            <span className="text-[#7b87a8] shrink-0">
+              user prompt:
+            </span>
+            <span className="text-white shrink-0 truncate max-w-[40ch]" title={prompt}>
+              "{prompt}"
+            </span>
+            {realWorld && (
+              <>
+                <span className="text-[#2c3a66] shrink-0">·</span>
+                <span className="text-[#d4dcf0] italic leading-snug">{realWorld}</span>
+              </>
+            )}
+          </section>
+        );
+      })()}
 
       {/* Stepped-session progress bar */}
       {sessionActive && (

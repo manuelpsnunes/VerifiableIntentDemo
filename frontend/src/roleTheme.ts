@@ -6,6 +6,7 @@ import type { Role } from "./types";
 
 export const ROLE_COLOR: Record<Role, string> = {
   system: "#7b87a8",
+  user: "#22d3ee",
   issuer: "#f59e0b",
   wallet: "#34d399",
   agent: "#7aa2ff",
@@ -15,6 +16,7 @@ export const ROLE_COLOR: Record<Role, string> = {
 
 export const ROLE_GLYPH: Record<Role, string> = {
   system: "·",
+  user: "U",
   issuer: "I",
   wallet: "W",
   agent: "A",
@@ -24,6 +26,7 @@ export const ROLE_GLYPH: Record<Role, string> = {
 
 export const ROLE_LABEL: Record<Role, string> = {
   system: "System",
+  user: "User",
   issuer: "Issuer",
   wallet: "Wallet",
   agent: "Agent",
@@ -32,8 +35,10 @@ export const ROLE_LABEL: Record<Role, string> = {
 };
 
 // The 5 "party" roles that participate in selective-disclosure tracking.
-// (System is the orchestrator, not a credential-holding party.)
-export type Party = Exclude<Role, "system">;
+// (System is the orchestrator, not a credential-holding party. User is the
+// root of authority but does not hold a credential of their own — they
+// authenticate to the wallet, which holds their key.)
+export type Party = Exclude<Role, "system" | "user">;
 export const PARTIES: Party[] = ["issuer", "wallet", "agent", "merchant", "network"];
 
 // Concrete real-world examples per role. Purely pedagogical — these brand names
@@ -43,6 +48,7 @@ export const PARTIES: Party[] = ["issuer", "wallet", "agent", "merchant", "netwo
 // generic.
 export const ROLE_REAL_WORLD: Record<Role, string> = {
   system: "demo orchestrator",
+  user: "you, the cardholder",
   issuer: "e.g. UBS, Chase",
   wallet: "e.g. Apple Pay, Google Pay",
   agent: "e.g. ChatGPT, Claude",

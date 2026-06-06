@@ -130,6 +130,9 @@ export const useFlowStore = create<FlowState>((set, get) => ({
             }
             return {
               events: [...s.events, evt],
+              // Auto-advance the selected step to the freshly arrived event so
+              // the UI follows the run without requiring a manual click.
+              selectedStep: evt.step,
               running:
                 evt.action === "demo_complete" ? false : s.running,
             };

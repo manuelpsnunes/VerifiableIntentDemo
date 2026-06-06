@@ -127,6 +127,7 @@ async def _step_1_enrollment(state: DemoState) -> None:
     user = get_keys("wallet")
     agent = get_keys("agent")
     merchant = get_keys("merchant")
+    network = get_keys("network")
     await _emit(
         state,
         1,
@@ -139,6 +140,7 @@ async def _step_1_enrollment(state: DemoState) -> None:
                 "wallet": {"kid": user.kid, "public_jwk": user.public_jwk},
                 "agent": {"kid": agent.kid, "public_jwk": agent.public_jwk},
                 "merchant": {"kid": merchant.kid, "public_jwk": merchant.public_jwk},
+                "network": {"kid": network.kid, "public_jwk": network.public_jwk},
             },
         },
     )

@@ -27,16 +27,21 @@ interface StepDef {
 // Maps every orchestrator step (0..11) to what the stakeholder graph shows.
 // Sourced from backend/app/orchestrator.py STEPS table.
 const STEP_FLOW: Record<number, StepDef> = {
-  0: { pulse: ["system"] },           // demo_started
-  1: { pulse: ["system"] },           // roles_resolved
+  0: { pulse: ["user", "system"] },   // demo_started — user types the prompt
+  1: { pulse: ["system"] },           // enrollment (keypairs loaded)
   2: {
     arrows: [
-      { from: "issuer", to: "wallet", label: "L1", verb: "issuer issues L1 card credential to wallet" },
+      { from: "issuer", to: "wallet", label: "L1", verb: "L1 loaded from wallet · issuer-signed at enrollment" },
     ],
   },
   3: {
     arrows: [
-      { from: "wallet", to: "agent", label: "L2", verb: "wallet signs L2 delegation/mandate to agent" },
+      // The user authorizes the mandate (consent / Face ID); the wallet then
+      // ratifies that consent by signing L2. Showing both arrows makes it
+      // explicit that the wallet did not invent the merchants/SKUs — the user
+      // approved them.
+      { from: "user",   to: "wallet", label: "consent", verb: "user approves merchants + items + budget (e.g. Face ID)" },
+      { from: "wallet", to: "agent",  label: "L2",      verb: "wallet ratifies user consent by signing L2 mandate to agent" },
     ],
   },
   4: { pulse: ["agent"] },            // agent_planned (internal)
@@ -55,7 +60,7 @@ const STEP_FLOW: Record<number, StepDef> = {
   8:  { pulse: ["merchant"] },        // merchant verifies (internal)
   9:  { pulse: ["network"] },         // network verifies (internal)
   10: { pulse: ["network"] },         // network authorizes (internal)
-  11: { pulse: ["system"] },          // demo_complete
+  11: { pulse: ["user", "system"] },  // demo_complete — user sees confirmation
 };
 
 // --- geometry ---
@@ -65,17 +70,20 @@ const CENTER = { x: SIZE / 2, y: 220 };
 const RADIUS = 140;        // distance from center to each node center
 const NODE_R = 28;         // node circle radius
 
-// Clock-face angles (0° = 3 o'clock; -90° = 12 o'clock; clockwise positive).
+// Clock-face angles. With 7 nodes evenly spaced at ~51.4° apart, system stays
+// at top (12 o'clock) and the user sits between wallet and agent — geometrically
+// reinforcing that the user delegates *through* the wallet to the agent.
 const ANGLES: Record<Role, number> = {
-  system:    -90, // 12
-  issuer:    -30, //  2
-  wallet:     30, //  4
-  agent:      90, //  6
-  merchant:  150, //  8
-  network:   210, // 10
+  system:    -90.00, // top
+  issuer:    -38.57,
+  wallet:     12.86,
+  user:       64.29, // between wallet and agent
+  agent:     115.71,
+  merchant:  167.14,
+  network:  -141.43, // == 218.57 normalised
 };
 
-const ROLES: Role[] = ["system", "issuer", "wallet", "agent", "merchant", "network"];
+const ROLES: Role[] = ["system", "issuer", "wallet", "user", "agent", "merchant", "network"];
 
 function nodePos(role: Role) {
   const rad = (ANGLES[role] * Math.PI) / 180;
