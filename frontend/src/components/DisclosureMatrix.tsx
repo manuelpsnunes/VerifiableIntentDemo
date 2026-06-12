@@ -8,7 +8,7 @@ interface Props {
   injectionMode?: string | null;
 }
 
-type Party = Exclude<Role, "system">;
+type Party = Exclude<Role, "system" | "user">;
 type Visibility = "signed" | "full" | "partial" | "hidden";
 
 interface CellState {

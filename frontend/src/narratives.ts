@@ -165,18 +165,32 @@ export const NARRATIVES: Record<string, Narrative> = {
     ],
   },
 
-  verified: {
-    title: "Verification (chain + constraints)",
+  merchant_verified: {
+    title: "Merchant verifies the checkout chain (L3b)",
     summary:
-      "The merchant runs verify_chain over L1 → L2(checkout view) → L3b. The network runs verify_chain over L1 → L2(payment view) → L3a, plus check_constraints in STRICT mode.",
-    why: "Each party sees a different slice of L2 (selective disclosure). The network never sees the line items; the merchant never sees the budget envelope. Both verify only public-key signatures and binding hashes — no shared secret.",
+      "The merchant runs verify_chain over L1 → L2(checkout view) → L3b, then recomputes SHA-256(checkout_jwt) and confirms it matches L3b's checkout_hash. It sees only the checkout slice of L2 — never the budget envelope.",
+    why: "The merchant only needs to know the cart is authentic and matches the JWT it signed. It does NOT check spending constraints — it can't even see the budget (selective disclosure). Constraint enforcement is the network's job.",
     learning_objective:
-      "Each verifier sees only the L2 disclosures it needs — yet both compute the same sd_hash back to L1, proving the chain is intact without leaking the other party's data.",
+      "The merchant verifies the checkout-side chain plus the checkout_hash binding — but never checks payment constraints. It only sees the cart slice of L2.",
     plain_payments:
-      "Same step as a card terminal validating the EMV chip + cryptogram — except each verifier here only sees its own slice.",
+      "Like a store confirming the signed receipt it issued wasn't altered — it never sees your credit limit.",
     real_world:
-      "Tennis Warehouse and Mastercard each independently check the signatures. Neither needs to trust ChatGPT — they trust your signature, which was the Face ID tap.",
-    look_at: ["chain_valid", "constraints_satisfied", "checks_performed"],
+      "Tennis Warehouse confirms the order is genuinely the one it quoted, then waits for the network's go-ahead before shipping.",
+    look_at: ["chain_valid", "checks_performed", "l2_checkout_disclosed"],
+  },
+
+  network_verified: {
+    title: "Network verifies the payment chain + constraints",
+    summary:
+      "The network runs verify_chain over L1 → L2(payment view) → L3a, then runs check_constraints in STRICT mode — confirming the agent's amount and payee fall inside L2's signed amount_range and allowed_payees. It sees only the payment slice of L2 — never the line items.",
+    why: "The network is the constraint enforcer. STRICT mode means every disclosed L2 payment constraint MUST pass or the transaction is declined. It never sees the cart — only that the payment stays inside the signed envelope.",
+    learning_objective:
+      "Only the network checks constraints: it re-checks the agent's fulfillment (amount, payee) against L2's signed bounds in STRICT mode. It sees the payment slice of L2, not the cart.",
+    plain_payments:
+      "Like the card network checking the amount is within your limit and the merchant is allowed — the part the store never sees.",
+    real_world:
+      "Mastercard checks $279.99 is within the $400 you approved and that Tennis Warehouse is an allowed payee, then authorizes.",
+    look_at: ["chain_valid", "constraints_satisfied", "constraint_checks", "fulfillment"],
   },
 
   authorized: {
@@ -188,6 +202,8 @@ export const NARRATIVES: Record<string, Narrative> = {
       "Authorization is the network's contractual commitment — it ran every verification *before* approving, and any chain failure would have stopped settlement.",
     plain_payments:
       "The card network's approval code (AUTH-*) — the same role Visa or Mastercard play on every contactless tap today.",
+    production_note:
+      "In production the authorization response (the AUTH code) returns to the MERCHANT — the party that requested it (via its acquirer/PSP) — which is what lets the merchant ship the goods. The user and wallet don't receive the raw code: the user just gets an order confirmation from the merchant/agent. The demo doesn't model that return hop; it simply displays the AUTH code on this network event.",
     real_world:
       "Mastercard returns the AUTH code. Tennis Warehouse ships your racket. ChatGPT replies in the chat: 'Done! Babolat Pure Aero, ships Friday.'",
     look_at: ["authorization_id", "amount", "currency", "payee"],

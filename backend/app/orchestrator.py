@@ -346,7 +346,7 @@ async def _step_8_merchant_verifies(state: DemoState) -> None:
         state,
         8,
         "merchant",
-        "verified",
+        "merchant_verified",
         (
             "Merchant verified the checkout-side chain (L1 → L2(checkout) → L3b)."
             if mr.valid
@@ -379,7 +379,7 @@ async def _step_9_network_verifies(state: DemoState) -> None:
         state,
         9,
         "network",
-        "verified",
+        "network_verified",
         (
             "Network verified the payment-side chain and checked all constraints."
             if nr.chain_result.valid and nr.constraints_satisfied
@@ -494,8 +494,8 @@ STEPS: list[StepMeta] = [
     StepMeta(5, "product_selected", "Agent picks a product (Claude)", "agent", _step_5_product_selected),
     StepMeta(6, "checkout_jwt_signed", "Merchant signs checkout JWT", "merchant", _step_6_checkout_jwt_signed),
     StepMeta(7, "l3_built", "Agent signs L3a + L3b", "agent", _step_7_l3_built),
-    StepMeta(8, "verified", "Merchant verifies L1→L2(checkout)→L3b", "merchant", _step_8_merchant_verifies),
-    StepMeta(9, "verified", "Network verifies L1→L2(payment)→L3a + constraints", "network", _step_9_network_verifies),
+    StepMeta(8, "merchant_verified", "Merchant verifies L1→L2(checkout)→L3b", "merchant", _step_8_merchant_verifies),
+    StepMeta(9, "network_verified", "Network verifies L1→L2(payment)→L3a + constraints", "network", _step_9_network_verifies),
     StepMeta(10, "authorized", "Network authorizes payment", "network", _step_10_authorize),
     StepMeta(11, "demo_complete", "Wrap up & summarize", "system", _step_11_demo_complete),
 ]

@@ -1,11 +1,10 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { JsonView, darkStyles } from "react-json-view-lite";
-import "react-json-view-lite/dist/index.css";
 import type { FlowEvent } from "../types";
 import { getSpecRef } from "../specRefs";
 import { NARRATIVES } from "../narratives";
 import { getTermsForAction } from "../glossary";
+import { DocumentedJsonView } from "./DocumentedJsonView";
 
 interface Props {
   open: boolean;
@@ -238,15 +237,9 @@ export function SpecDrawer({ open, onClose, event }: Props) {
                           Copy JSON
                         </button>
                       </div>
-                      <div className="json-viewer rounded-md border border-[#1f2a4a] bg-[#0b1020] p-3">
-                        <JsonView
-                          data={event.payload ?? {}}
-                          shouldExpandNode={(level) => level < 2}
-                          style={darkStyles}
-                        />
-                      </div>
+                      <DocumentedJsonView data={event.payload ?? {}} />
                       <div className="mt-2 text-[10px] text-[#7b87a8] leading-snug">
-                        Fields like <code className="text-[#7aa2ff]">header</code>,
+                        Hover any key for its spec definition. Fields like <code className="text-[#7aa2ff]">header</code>,
                         <code className="text-[#7aa2ff]"> payload</code>,
                         <code className="text-[#7aa2ff]"> resolved</code>, and
                         <code className="text-[#7aa2ff]"> disclosures</code> are

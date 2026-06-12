@@ -77,12 +77,19 @@ export const SPEC_REFS: Record<string, SpecRef> = {
     paraphrase:
       "The agent signs two L3 credentials with its delegated key. L3a carries the final payment (amount, payee) to the network; L3b carries the cart commitment to the merchant. transaction_id (L3a) == checkout_hash (L3b) is how the network and merchant stitch one transaction across messages they each only half see.",
   },
-  verified: {
-    section: "§11",
-    title: "Verification rules",
-    url: SPEC_BASE + "#104-verifier-conformance",
+  merchant_verified: {
+    section: "§5.3",
+    title: "Merchant verification",
+    url: SPEC_BASE + "#53-verification-requirements-per-role",
     paraphrase:
-      "Verifiers MUST check: (1) parent signature(s) over the SD-JWT chain, (2) sd_hash binding from child to parent, (3) cnf.jwk delegation to the L3 signer, (4) typ headers and expiration, (5) for STRICT mode, that L3 fulfillment satisfies every L2 constraint. Any failure rejects the transaction.",
+      "The merchant MUST verify the L1 signature, the L2 signature against L1 cnf.jwk, the sd_hash bindings, that the disclosed checkout mandate matches the submitted checkout, and (Autonomous mode) resolve the agent key via L3b's kid and verify L3b. The merchant does NOT check payment constraints — it never sees the budget.",
+  },
+  network_verified: {
+    section: "§5.3",
+    title: "Network verification + constraints",
+    url: SPEC_BASE + "#53-verification-requirements-per-role",
+    paraphrase:
+      "The network MUST verify the same L1→L2 chain on the payment side, resolve the agent key via L3a's kid and verify L3a, and — uniquely — verify that L3a's payment values satisfy every disclosed L2 payment constraint. The demo runs this in STRICT mode: any constraint failure rejects the transaction.",
   },
   authorized: {
     section: "§12",

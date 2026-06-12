@@ -59,33 +59,52 @@ const STEP_FLOW: Record<number, StepDef> = {
   },
   8:  { pulse: ["merchant"] },        // merchant verifies (internal)
   9:  { pulse: ["network"] },         // network verifies (internal)
-  10: { pulse: ["network"] },         // network authorizes (internal)
+  10: {
+    arrows: [
+      // The authorization response returns to the merchant (the party that
+      // requested it, via its acquirer/PSP) — which is what lets the merchant
+      // ship the goods. The user/wallet only get an order confirmation, not the
+      // raw AUTH code.
+      { from: "network", to: "merchant", label: "AUTH", verb: "network returns the authorization code to the merchant, who can now fulfill the order" },
+    ],
+  },
   11: { pulse: ["user", "system"] },  // demo_complete — user sees confirmation
 };
 
 // --- geometry ---
-const SIZE = 400;          // SVG viewBox width
-const HEIGHT = 440;        // SVG viewBox height (extra for top/bottom labels)
+const SIZE = 400;          // ring nominal width
+const HEIGHT = 440;        // viewBox height (extra for top/bottom labels)
 const CENTER = { x: SIZE / 2, y: 220 };
-const RADIUS = 140;        // distance from center to each node center
+const RADIUS = 140;        // distance from center to each ring node center
 const NODE_R = 28;         // node circle radius
 
-// Clock-face angles. With 7 nodes evenly spaced at ~51.4° apart, system stays
-// at top (12 o'clock) and the user sits between wallet and agent — geometrically
-// reinforcing that the user delegates *through* the wallet to the agent.
-const ANGLES: Record<Role, number> = {
-  system:    -90.00, // top
-  issuer:    -38.57,
-  wallet:     12.86,
-  user:       64.29, // between wallet and agent
-  agent:     115.71,
-  merchant:  167.14,
-  network:  -141.43, // == 218.57 normalised
+// The viewBox is extended to the left of the ring so the off-ring user node
+// (and its labels) have room to breathe.
+const VIEW_MIN_X = -90;
+const VIEW_W = SIZE - VIEW_MIN_X; // 490
+
+// Clock-face angles for the 6 protocol roles, evenly spaced 60° apart with
+// system at top (12 o'clock). Issuer + wallet sit on the left, agent at the
+// bottom, merchant + network on the right — so the credential chain reads
+// issuer → wallet → agent → merchant/network roughly clockwise.
+const ANGLES: Record<Exclude<Role, "user">, number> = {
+  system:    -90, // top
+  network:   -30, // upper right
+  merchant:   30, // lower right
+  agent:      90, // bottom
+  wallet:    150, // lower left
+  issuer:    210, // upper left
 };
+
+// The user is deliberately placed OUTSIDE the ring, in the top-left, to
+// emphasise that the human principal stands apart from the protocol roles and
+// delegates *into* the system through the wallet (see the step-3 consent arrow).
+const USER_POS = { x: -40, y: 70 };
 
 const ROLES: Role[] = ["system", "issuer", "wallet", "user", "agent", "merchant", "network"];
 
 function nodePos(role: Role) {
+  if (role === "user") return { ...USER_POS };
   const rad = (ANGLES[role] * Math.PI) / 180;
   return {
     x: CENTER.x + RADIUS * Math.cos(rad),
@@ -158,7 +177,7 @@ export function StakeholderGraph() {
   return (
     <div className="relative">
       <svg
-        viewBox={`0 0 ${SIZE} ${HEIGHT}`}
+        viewBox={`${VIEW_MIN_X} 0 ${VIEW_W} ${HEIGHT}`}
         className="w-full h-auto block"
         role="img"
         aria-label="Stakeholder interaction graph"
@@ -387,7 +406,7 @@ export function StakeholderGraph() {
             transition={{ duration: 0.15 }}
             className="absolute pointer-events-none text-[11px] px-2 py-1 rounded bg-[#0b1020] border border-[#1f2a4a] text-white shadow-lg whitespace-nowrap"
             style={{
-              left: `${(hover.x / SIZE) * 100}%`,
+              left: `${((hover.x - VIEW_MIN_X) / VIEW_W) * 100}%`,
               top: `${(hover.y / HEIGHT) * 100}%`,
               transform: "translate(-50%, -140%)",
               maxWidth: 240,

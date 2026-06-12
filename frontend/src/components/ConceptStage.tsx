@@ -234,7 +234,7 @@ export function ConceptStage({
           }
           return null;
         }
-        if ((event.action === "verified" || event.action === "authorized" || event.action === "declined") && allBindings.length > 0) {
+        if ((event.action === "merchant_verified" || event.action === "network_verified" || event.action === "authorized" || event.action === "declined") && allBindings.length > 0) {
           // Show all known bindings at verification time; if an injection track is
           // present, render its bindings underneath for side-by-side comparison.
           return (

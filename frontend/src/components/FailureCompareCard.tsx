@@ -21,7 +21,8 @@ function diffVerdict(
   const rp = ref.payload as any;
   const ip = inj.payload as any;
   switch (ref.action) {
-    case "verified": {
+    case "merchant_verified":
+    case "network_verified": {
       const refOk = !!rp?.chain_valid && (rp?.constraints_satisfied ?? true);
       const injOk = !!ip?.chain_valid && (ip?.constraints_satisfied ?? true);
       const ipErrors: string[] = [
