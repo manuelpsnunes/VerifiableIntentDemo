@@ -11,6 +11,8 @@ license: mit
 
 # Verifiable Intent — End-to-End Demo
 
+> **🔗 Live demo:** [**Try it on Hugging Face Spaces →**](https://huggingface.co/spaces/manuelpsnunes/verifiable-intent-demo)
+
 > **Disclaimer.** This is a personal experiment built independently and on personal time, using only the public open-source [`verifiable-intent`](https://github.com/agent-intent/verifiable-intent) SDK and publicly available specifications. It is not an official project of, and is not affiliated with or endorsed by, any employer or payment network. No proprietary or confidential information is included. All card-network references in the code are generic placeholders (`card-network.example`, `ExampleCard`) used only to illustrate the protocol's roles.
 
 A local demo that runs a real [Verifiable Intent](https://verifiableintent.dev/spec/) **autonomous-mode**
