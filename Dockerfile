@@ -6,9 +6,12 @@
 # ---- Stage 1: build the frontend ----
 FROM node:22-slim AS frontend
 WORKDIR /build
-# Install deps first (cached unless the lockfile changes).
+# Install deps first (cached unless the lockfile changes). We use `npm install`
+# rather than `npm ci` because the committed package-lock.json is generated on
+# Windows/arm64, which omits some Linux/x64-only optional native deps (e.g.
+# @emnapi/*); `npm install` reconciles those for this build platform.
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN npm install --no-audit --no-fund
 # Then build.
 COPY frontend/ ./
 RUN npm run build
