@@ -37,7 +37,7 @@ Cross-binding:
 - `L3a.transaction_id == sha256(merchant.checkout_jwt) == L3b.checkout_hash`
 - `L2-payment ↔ L2-checkout` linked by SD reference hash.
 
-## Live flow (12 events on `/ws/events`)
+## Live flow (12 events from `POST /api/demo/run`)
 
 | #   | Role     | Action                  | What happens                                                                     |
 | --- | -------- | ----------------------- | -------------------------------------------------------------------------------- |
@@ -99,7 +99,6 @@ sequenceDiagram
 | Network verification + auth  | [backend/app/roles/network.py](../backend/app/roles/network.py)            |
 | Claude tool_use              | [backend/app/llm.py](../backend/app/llm.py)                                |
 | 12-event orchestrator        | [backend/app/orchestrator.py](../backend/app/orchestrator.py)              |
-| WebSocket event bus          | [backend/app/events.py](../backend/app/events.py)                          |
 | FastAPI surface              | [backend/app/main.py](../backend/app/main.py)                              |
 | Smoke test                   | [backend/tests/test_full_flow.py](../backend/tests/test_full_flow.py)      |
 | React dashboard              | [frontend/src/App.tsx](../frontend/src/App.tsx)                            |

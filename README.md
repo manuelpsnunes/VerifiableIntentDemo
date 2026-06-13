@@ -1,3 +1,14 @@
+---
+title: Verifiable Intent Demo
+emoji: 🔐
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
+
 # Verifiable Intent — End-to-End Demo
 
 > **Disclaimer.** This is a personal experiment built independently and on personal time, using only the public open-source [`verifiable-intent`](https://github.com/agent-intent/verifiable-intent) SDK and publicly available specifications. It is not an official project of, and is not affiliated with or endorsed by, any employer or payment network. No proprietary or confidential information is included. All card-network references in the code are generic placeholders (`card-network.example`, `ExampleCard`) used only to illustrate the protocol's roles.
@@ -20,7 +31,8 @@ that satisfies the user's constraints.
 
 Five logical roles, one FastAPI backend process (each role is a Python module with its own ES256
 keypair). The orchestrator runs **12 steps** (1–9: success path; 10–12: optional failure-injection
-divergence) and emits structured events over a WebSocket. A Vite + React frontend renders one
+divergence) and returns the full ordered list of structured events from a single HTTP
+call, which the Vite + React frontend reveals one at a time (client-side paced). One
 panel per role.
 
 ```

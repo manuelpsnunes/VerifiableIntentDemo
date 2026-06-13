@@ -1,12 +1,18 @@
 import { create } from "zustand";
 import type { FlowEvent, RoleKey, Catalog } from "./types";
 
-const WS_URL =
-  (typeof window !== "undefined" && (window as any).__VI_WS_URL__) ||
-  "ws://localhost:8000/ws/events";
+// Backend origin. In Vite dev the frontend runs on :5173 and the API on :8000;
+// in production the built frontend is served same-origin by FastAPI, so an
+// empty base (relative URLs) "just works". Override with window.__VI_API_URL__.
 const API_URL =
   (typeof window !== "undefined" && (window as any).__VI_API_URL__) ||
-  "http://localhost:8000";
+  (typeof window !== "undefined" && window.location.port === "5173"
+    ? "http://localhost:8000"
+    : "");
+
+// Delay between revealing successive events client-side, mirroring the
+// backend's former STEP_PACING_S streaming cadence.
+const PACING_MS = 600;
 
 export interface StepMeta {
   index: number;
@@ -58,7 +64,49 @@ interface FlowState {
   resetEvents: () => void;
 }
 
-let socket: WebSocket | null = null;
+type SetState = (
+  partial: Partial<FlowState> | ((s: FlowState) => Partial<FlowState>)
+) => void;
+
+// Fold a single event into the store, mirroring the role/track routing the
+// WebSocket consumer used to do. A fresh `demo_started` resets that track.
+function applyEvent(set: SetState, evt: FlowEvent) {
+  const track = evt.track ?? "reference";
+  if (evt.action === "demo_started") {
+    if (track === "injection") {
+      set(() => ({ injectionEvents: [evt] }));
+    } else {
+      set(() => ({ events: [evt], selectedStep: null }));
+    }
+    return;
+  }
+  const done = evt.action === "demo_complete" || evt.action === "demo_failed";
+  set((s) => {
+    if (track === "injection") {
+      return {
+        injectionEvents: [...s.injectionEvents, evt],
+        injectionRunning: done ? false : s.injectionRunning,
+      };
+    }
+    return {
+      events: [...s.events, evt],
+      // Auto-advance the selected step to the freshly revealed event so the UI
+      // follows the run without requiring a manual click.
+      selectedStep: evt.step,
+      running: done ? false : s.running,
+    };
+  });
+}
+
+// Reveal a returned event list one at a time, paced like the old stream.
+async function replay(events: FlowEvent[], set: SetState) {
+  for (let i = 0; i < events.length; i++) {
+    applyEvent(set, events[i]);
+    if (i < events.length - 1) {
+      await new Promise((r) => setTimeout(r, PACING_MS));
+    }
+  }
+}
 
 export const useFlowStore = create<FlowState>((set, get) => ({
   connected: false,
@@ -74,11 +122,12 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   session: null,
 
   init: () => {
-    // Fetch catalog + roles + step table once.
+    // Fetch catalog + roles + step table once. The catalog fetch doubles as a
+    // reachability probe that drives the connection indicator.
     fetch(`${API_URL}/api/catalog`)
       .then((r) => r.json())
-      .then((data) => set({ catalog: data }))
-      .catch(() => {});
+      .then((data) => set({ catalog: data, connected: true }))
+      .catch(() => set({ connected: false }));
     fetch(`${API_URL}/api/roles`)
       .then((r) => r.json())
       .then((data: { roles: RoleKey[] }) => set({ roles: data.roles }))
@@ -87,62 +136,6 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       .then((r) => r.json())
       .then((data: { steps: StepMeta[] }) => set({ stepTable: data.steps }))
       .catch(() => {});
-
-    if (socket) return;
-    const connect = () => {
-      socket = new WebSocket(WS_URL);
-      socket.onopen = () => set({ connected: true });
-      socket.onclose = () => {
-        set({ connected: false });
-        socket = null;
-        setTimeout(connect, 1500);
-      };
-      socket.onerror = () => {
-        try {
-          socket?.close();
-        } catch {
-          /* ignore */
-        }
-      };
-      socket.onmessage = (msg) => {
-        try {
-          const evt = JSON.parse(msg.data) as FlowEvent;
-          const track = evt.track ?? "reference";
-          // If a fresh `demo_started` arrives, clear that track's events but do
-          // NOT flip `running`/`injectionRunning` to true here — those are owned
-          // by runDemo/runInjection. The WS replay on reconnect can otherwise
-          // spuriously enable the "Running…" lock.
-          if (evt.action === "demo_started") {
-            if (track === "injection") {
-              set({ injectionEvents: [evt] });
-            } else {
-              set({ events: [evt], selectedStep: null });
-            }
-            return;
-          }
-          set((s) => {
-            if (track === "injection") {
-              return {
-                injectionEvents: [...s.injectionEvents, evt],
-                injectionRunning:
-                  evt.action === "demo_complete" ? false : s.injectionRunning,
-              };
-            }
-            return {
-              events: [...s.events, evt],
-              // Auto-advance the selected step to the freshly arrived event so
-              // the UI follows the run without requiring a manual click.
-              selectedStep: evt.step,
-              running:
-                evt.action === "demo_complete" ? false : s.running,
-            };
-          });
-        } catch (e) {
-          // ignore malformed
-        }
-      };
-    };
-    connect();
   },
 
   selectStep: (n) => set({ selectedStep: n }),
@@ -183,8 +176,21 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         const text = await res.text();
         console.error("Demo run failed:", res.status, text);
         set({ running: false });
+        return;
       }
-      // Success: events stream via WebSocket; `running` clears on demo_complete.
+      const data = (await res.json()) as {
+        ok: boolean;
+        events?: FlowEvent[];
+        error?: string;
+      };
+      if (!data.ok || !data.events) {
+        console.error("Demo run error:", data.error);
+        set({ running: false });
+        return;
+      }
+      await replay(data.events, set);
+      // Safety: clear the lock even if the run ended without a terminal event.
+      set({ running: false });
     } catch (e) {
       console.error(e);
       set({ running: false });
@@ -212,7 +218,20 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         const text = await res.text();
         console.error("Injection failed:", res.status, text);
         set({ injectionRunning: false });
+        return;
       }
+      const data = (await res.json()) as {
+        ok: boolean;
+        events?: FlowEvent[];
+        error?: string;
+      };
+      if (!data.ok || !data.events) {
+        console.error("Injection error:", data.error);
+        set({ injectionRunning: false });
+        return;
+      }
+      await replay(data.events, set);
+      set({ injectionRunning: false });
     } catch (e) {
       console.error(e);
       set({ injectionRunning: false });
@@ -247,7 +266,11 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     if (!session || session.done) return;
     try {
       const res = await fetch(`${API_URL}/api/demo/step`, { method: "POST" });
-      const data = (await res.json()) as SessionStatus;
+      const data = (await res.json()) as SessionStatus & {
+        events?: FlowEvent[];
+      };
+      // Render the event(s) this step produced, then update session status.
+      for (const evt of data.events ?? []) applyEvent(set, evt);
       set({ session: data });
     } catch (e) {
       console.error("nextStep failed", e);

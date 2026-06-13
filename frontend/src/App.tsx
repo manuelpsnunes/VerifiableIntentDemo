@@ -130,7 +130,7 @@ export default function App() {
             }
           />
           <span className="text-xs text-[#7b87a8]">
-            {connected ? "ws connected" : "ws offline"}
+            {connected ? "online" : "offline"}
           </span>
         </div>
       </header>

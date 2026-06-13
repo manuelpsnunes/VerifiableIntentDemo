@@ -14,7 +14,6 @@ dependencies = [
     "pydantic>=2.9",
     "python-dotenv>=1.0",
     "anthropic>=0.40",
-    "websockets>=13",
 ]
 
 [project.optional-dependencies]

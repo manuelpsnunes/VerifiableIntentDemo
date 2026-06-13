@@ -30,7 +30,14 @@ def _clean_keys_dir():
 async def test_full_autonomous_flow():
     from app.orchestrator import run_demo
 
-    summary = await run_demo("Buy a Babolat tennis racket under $400", budget_usd=400.0)
+    result = await run_demo("Buy a Babolat tennis racket under $400", budget_usd=400.0)
+    summary = result["summary"]
+
+    # The run returns the full ordered event list alongside the summary.
+    events = result["events"]
+    assert events[0]["action"] == "demo_started"
+    assert events[-1]["action"] == "demo_complete"
+    assert len(events) == 12
 
     assert summary["chain_valid"] is True, summary
     assert summary["constraints_satisfied"] is True, summary

@@ -1,10 +1,13 @@
-"""Demo orchestrator — runs the full VI autonomous flow and emits events.
+"""Demo orchestrator — runs the full VI autonomous flow and collects events.
 
-Exposes both a streaming `run_demo` (one event every ``STEP_PACING_S`` seconds)
-and a stepped API (`start_demo` + `advance_demo` + `reset_demo`) so the UI can
-walk through the same 12-event sequence one click at a time.
+Exposes both a one-shot `run_demo` (returns the full ordered event list) and a
+stepped API (`start_demo` + `advance_demo` + `reset_demo`) so the UI can walk
+through the same 12-event sequence one click at a time.
 
-Both paths share the same `STEPS` table so behaviour stays in lock-step.
+Both paths share the same `STEPS` table so behaviour stays in lock-step. Events
+are returned over plain HTTP — the frontend paces their reveal client-side, so
+no long-lived connection (WebSocket) is required and the app can run on free
+serverless/static hosting.
 
 Supports an optional `InjectionConfig` to deliberately tamper inputs so a
 verifier rejects the chain — used by the failure-injection demo track.
@@ -12,15 +15,11 @@ verifier rejects the chain — used by the failure-injection demo track.
 
 from __future__ import annotations
 
-import asyncio
 import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
-from verifiable_intent.crypto.sd_jwt import decode_sd_jwt
-
-from .events import bus
 from .keys import get_keys
 from .roles import agent as agent_role
 from .roles import issuer as issuer_role
@@ -29,6 +28,9 @@ from .roles import network as network_role
 from .roles import wallet as wallet_role
 from .sd_jwt_view import describe_sd_jwt, describe_serialized
 
+# Client-side pacing hint (seconds between revealed events). The frontend reads
+# this via /api/demo/steps-style metadata is not needed; it hardcodes the same
+# value. Kept here for documentation of the intended cadence.
 STEP_PACING_S = 0.6
 
 # Injection modes the UI can request via POST /api/demo/inject.
@@ -54,9 +56,10 @@ async def _emit(
     summary: str,
     payload: dict[str, Any] | None = None,
 ):
-    """Publish one event, tagging it with the current track + run_id."""
-    await bus.publish(
+    """Append one event to the run's event list, tagged with track + run_id."""
+    state.events.append(
         {
+            "ts": time.time(),
             "step": step,
             "role": role,
             "action": action,
@@ -97,6 +100,9 @@ class DemoState:
     auth: Any = None
     summary: dict | None = None
     extra: dict[str, Any] = field(default_factory=dict)
+    # Ordered list of every event this run produced. Returned over HTTP; the
+    # frontend paces their reveal client-side.
+    events: list[dict] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -105,7 +111,6 @@ class DemoState:
 
 
 async def _step_0_demo_started(state: DemoState) -> None:
-    await bus.reset_history()
     await _emit(
         state,
         0,
@@ -512,13 +517,16 @@ async def run_demo(
     *,
     injection: InjectionConfig | None = None,
     track: str = "reference",
-    preserve_history: bool = False,
 ) -> dict:
-    """Run all 12 steps back-to-back with ``STEP_PACING_S`` between each.
+    """Run all 12 steps and return the full ordered event list + summary.
 
-    ``injection`` triggers a tampered run that real verifiers will reject.
-    ``preserve_history`` skips the bus history wipe so a prior reference
-    track stays on the WebSocket replay buffer.
+    ``injection`` triggers a tampered run that real verifiers will reject. No
+    pacing happens here \u2014 the frontend reveals the returned events one at a
+    time so the demo needs no streaming transport.
+
+    Returns ``{"summary": <dict>, "events": <list[dict]>}``. On a mid-run
+    failure, a trailing ``demo_failed`` event is appended so the UI can still
+    replay the partial run and show where it broke.
     """
     state = DemoState(
         prompt=prompt,
@@ -527,29 +535,23 @@ async def run_demo(
         injection=injection,
         track=track,
     )
-    # When running an injection track on top of a reference one, suppress the
-    # reset_history side-effect of step 0 so the UI keeps both tracks visible.
-    if preserve_history:
-        # Monkey-patch a no-op reset for this run by stashing the original.
-        original_reset = bus.reset_history
-        async def _noop():  # type: ignore[no-redef]
-            return None
-        bus.reset_history = _noop  # type: ignore[assignment]
-        try:
-            for i, step in enumerate(STEPS):
-                await step.fn(state)
-                if i < len(STEPS) - 1:
-                    await asyncio.sleep(STEP_PACING_S)
-        finally:
-            bus.reset_history = original_reset  # type: ignore[assignment]
-    else:
-        for i, step in enumerate(STEPS):
+    try:
+        for step in STEPS:
             await step.fn(state)
-            if i < len(STEPS) - 1:
-                await asyncio.sleep(STEP_PACING_S)
-    _ = decode_sd_jwt  # keep import live
-    return state.summary or {}
-    return state.summary or {}
+    except Exception as exc:  # noqa: BLE001 \u2014 surface failure as an event
+        state.events.append(
+            {
+                "ts": time.time(),
+                "step": -1,
+                "role": "system",
+                "action": "demo_failed",
+                "summary": f"Demo failed: {exc}",
+                "payload": {"error": str(exc), "error_type": type(exc).__name__},
+                "track": state.track,
+                "run_id": state.run_id,
+            }
+        )
+    return {"summary": state.summary or {}, "events": state.events}
 
 
 # ----- Stepped (manual) mode -----------------------------------------------
@@ -592,7 +594,7 @@ def session_status() -> dict[str, Any]:
 
 
 async def start_demo(prompt: str, budget_usd: float) -> dict[str, Any]:
-    """Initialize a stepped session. Resets event history. Does NOT run any step yet."""
+    """Initialize a stepped session. Does NOT run any step yet."""
     global _session_state, _session_cursor
     _session_state = DemoState(
         prompt=prompt,
@@ -600,18 +602,18 @@ async def start_demo(prompt: str, budget_usd: float) -> dict[str, Any]:
         budget_cents=int(round(budget_usd * 100)),
     )
     _session_cursor = 0
-    await bus.reset_history()
     return session_status()
 
 
 async def advance_demo() -> dict[str, Any]:
-    """Run exactly one step and return updated status."""
+    """Run exactly one step and return updated status + the event(s) it produced."""
     global _session_cursor
     if _session_state is None:
         raise RuntimeError("no demo session — call /api/demo/start first")
     if _session_cursor >= len(STEPS):
         return session_status()
     step = STEPS[_session_cursor]
+    before = len(_session_state.events)
     await step.fn(_session_state)
     _session_cursor += 1
     status = session_status()
@@ -621,13 +623,14 @@ async def advance_demo() -> dict[str, Any]:
         "title": step.title,
         "role": step.role,
     }
+    # The event(s) this step appended — the UI renders them directly.
+    status["events"] = _session_state.events[before:]
     return status
 
 
 async def reset_demo() -> dict[str, Any]:
-    """Clear any in-progress session and wipe the event bus history."""
+    """Clear any in-progress stepped session."""
     global _session_state, _session_cursor
     _session_state = None
     _session_cursor = 0
-    await bus.reset_history()
     return session_status()
